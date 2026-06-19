@@ -1,0 +1,60 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/main.gd" id="1_main"]
+[ext_resource type="Script" path="res://scripts/cylinder_room.gd" id="2_room"]
+[ext_resource type="Script" path="res://scripts/twiinii_ball.gd" id="3_ball"]
+
+[node name="TwiiniiWorld" type="Node2D"]
+script = ExtResource("1_main")
+
+[node name="Sky" type="ColorRect" parent="."]
+z_index = -20
+offset_right = 1280.0
+offset_bottom = 720.0
+color = Color(1, 1, 1, 1)
+
+[node name="Camera2D" type="Camera2D" parent="."]
+position = Vector2(640, 360)
+
+[node name="World" type="Node2D" parent="."]
+
+[node name="CylinderRoom" type="Node2D" parent="World"]
+z_index = -5
+script = ExtResource("2_room")
+
+[node name="TwiiniiBall" type="Node2D" parent="World"]
+script = ExtResource("3_ball")
+
+[node name="ModelSlot" type="Node2D" parent="World/TwiiniiBall"]
+
+[node name="PlaceholderBall" type="Node2D" parent="World/TwiiniiBall"]
+
+[node name="BallGlow" type="Polygon2D" parent="World/TwiiniiBall/PlaceholderBall"]
+color = Color(0, 0.74, 0.83, 0.22)
+polygon = PackedVector2Array(-34, 0, 0, -34, 34, 0, 0, 34)
+
+[node name="BallBody" type="Polygon2D" parent="World/TwiiniiBall/PlaceholderBall"]
+color = Color(0, 0.74, 0.83, 1)
+polygon = PackedVector2Array(-24, 0, 0, -24, 24, 0, 0, 24)
+
+[node name="BallShine" type="Polygon2D" parent="World/TwiiniiBall/PlaceholderBall"]
+position = Vector2(-8, -10)
+color = Color(0.86, 0.98, 1, 0.85)
+polygon = PackedVector2Array(-6, 0, 0, -8, 8, 0, 0, 6)
+
+[node name="Controls" type="CanvasLayer" parent="."]
+layer = 20
+
+[node name="LeftButton" type="Button" parent="Controls"]
+offset_left = 24.0
+offset_top = 612.0
+offset_right = 116.0
+offset_bottom = 696.0
+text = "<"
+
+[node name="RightButton" type="Button" parent="Controls"]
+offset_left = 1164.0
+offset_top = 612.0
+offset_right = 1256.0
+offset_bottom = 696.0
+text = ">"
