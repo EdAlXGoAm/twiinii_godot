@@ -7,19 +7,18 @@ const MODEL_PATHS := [
 	"res://assets/models/twiinii/model.glb",
 ]
 
-const VIEW_CENTER := Vector2(640.0, 360.0)
 const ROOM_WIDTH := 2400.0
 const TWIINII_WORLD_X := 1220.0
 const MOVE_STEP := 190.0
 const MIN_WORLD_X := 160.0
 const MAX_WORLD_X := ROOM_WIDTH - 160.0
-const BASE_Y := 360.0
 
 var view_x := ROOM_WIDTH * 0.5
 var world_x := TWIINII_WORLD_X
 var target_world_x := TWIINII_WORLD_X
 var velocity_x := 0.0
 var float_time := 0.0
+var viewport_size := Vector2(1280.0, 720.0)
 
 @onready var model_slot: Node2D = $ModelSlot
 @onready var placeholder_ball: Node2D = $PlaceholderBall
@@ -31,6 +30,10 @@ func _ready() -> void:
 
 func set_view_x(value: float) -> void:
 	view_x = value
+	_update_placement()
+
+func set_viewport_size(value: Vector2) -> void:
+	viewport_size = value
 	_update_placement()
 
 func move_left() -> void:
@@ -103,11 +106,15 @@ func _apply_unlit_materials(mesh_instance: MeshInstance3D) -> void:
 			mesh_instance.set_surface_override_material(surface_index, unlit_material)
 
 func _update_placement() -> void:
+	var screen_center_x := viewport_size.x * 0.5
+	var base_y := viewport_size.y * 0.5
+	var responsive_scale := clampf(viewport_size.x / 720.0, 0.72, 1.0)
+
 	position = Vector2(
-		world_x - view_x + VIEW_CENTER.x,
-		BASE_Y + sin(float_time * 2.4) * 9.0 - minf(absf(velocity_x) * 0.018, 18.0)
+		world_x - view_x + screen_center_x,
+		base_y + sin(float_time * 2.4) * 9.0 - minf(absf(velocity_x) * 0.018, 18.0)
 	)
-	scale = Vector2.ONE * (1.0 + sin(float_time * 2.4) * 0.035)
+	scale = Vector2.ONE * responsive_scale * (1.0 + sin(float_time * 2.4) * 0.035)
 	modulate = Color(1.0, 1.0, 1.0, 1.0)
 	z_index = 100
 
