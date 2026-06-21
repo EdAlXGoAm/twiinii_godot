@@ -7,22 +7,31 @@ const MODEL_PATHS := [
 	"res://assets/models/twiinii/model.glb",
 ]
 
+const CLOSED_EYES_MODEL_PATHS := [
+	"res://assets/models/twiinii/blue_ball_twiinii_model_close_eyes.glb",
+]
+
 const ROOM_WIDTH := 2400.0
 const TWIINII_WORLD_X := 1220.0
 const MOVE_STEP := 190.0
 const MIN_WORLD_X := 160.0
 const MAX_WORLD_X := ROOM_WIDTH - 160.0
+const BLINK_INTERVAL := 4.0
+const BLINK_DURATION := 0.12
 
 var view_x := ROOM_WIDTH * 0.5
 var world_x := TWIINII_WORLD_X
 var target_world_x := TWIINII_WORLD_X
 var velocity_x := 0.0
 var float_time := 0.0
+var blink_time := 0.0
 var viewport_size := Vector2(1280.0, 720.0)
 
 @onready var model_slot: Node2D = $ModelSlot
 @onready var placeholder_ball: Node2D = $PlaceholderBall
 var model_root: Node3D
+var open_eyes_model: Node3D
+var closed_eyes_model: Node3D
 
 func _ready() -> void:
 	_try_load_model()
@@ -46,17 +55,28 @@ func _set_target_world_x(value: float) -> void:
 	target_world_x = clampf(value, MIN_WORLD_X, MAX_WORLD_X)
 
 func _try_load_model() -> void:
-	for path in MODEL_PATHS:
+	var open_model := _load_first_model(MODEL_PATHS)
+	if open_model == null:
+		return
+
+	var closed_model := _load_first_model(CLOSED_EYES_MODEL_PATHS)
+	_mount_model_preview(open_model, closed_model)
+	placeholder_ball.visible = false
+
+func _load_first_model(paths: Array) -> Node3D:
+	for path in paths:
 		if not ResourceLoader.exists(path):
 			continue
 		var packed_scene: PackedScene = load(path)
 		if packed_scene == null:
 			continue
-		_mount_model_preview(packed_scene.instantiate())
-		placeholder_ball.visible = false
-		return
+		var instance := packed_scene.instantiate()
+		if instance is Node3D:
+			return instance
 
-func _mount_model_preview(model: Node) -> void:
+	return null
+
+func _mount_model_preview(open_model: Node3D, closed_model: Node3D) -> void:
 	var viewport := SubViewport.new()
 	viewport.size = Vector2i(256, 256)
 	viewport.transparent_bg = true
@@ -67,12 +87,12 @@ func _mount_model_preview(model: Node) -> void:
 	model_root = root_3d
 	viewport.add_child(root_3d)
 
-	if model is Node3D:
-		root_3d.add_child(model)
-		_make_model_unlit(model)
-		model.position = Vector3(0.0, -0.2, 0.0)
-		model.rotation_degrees = Vector3(0.0, 270.0, 0.0)
-		model.scale = Vector3.ONE * 1.35
+	open_eyes_model = open_model
+	_setup_model_variant(open_eyes_model, true)
+
+	if closed_model != null:
+		closed_eyes_model = closed_model
+		_setup_model_variant(closed_eyes_model, false)
 
 	var camera := Camera3D.new()
 	camera.position = Vector3(0.0, 0.25, 3.2)
@@ -84,6 +104,14 @@ func _mount_model_preview(model: Node) -> void:
 	preview.texture = viewport.get_texture()
 	preview.scale = Vector2.ONE * 0.85
 	model_slot.add_child(preview)
+
+func _setup_model_variant(model: Node3D, visible_on_start: bool) -> void:
+	model_root.add_child(model)
+	_make_model_unlit(model)
+	model.position = Vector3(0.0, -0.2, 0.0)
+	model.rotation_degrees = Vector3(0.0, 270.0, 0.0)
+	model.scale = Vector3.ONE * 1.35
+	model.visible = visible_on_start
 
 func _make_model_unlit(node: Node) -> void:
 	if node is MeshInstance3D:
@@ -120,6 +148,7 @@ func _update_placement() -> void:
 
 func _process(delta: float) -> void:
 	float_time += delta
+	_update_blink(delta)
 	var spring_force := (target_world_x - world_x) * 16.0
 	velocity_x += spring_force * delta
 	velocity_x *= pow(0.84, delta * 60.0)
@@ -134,3 +163,12 @@ func _update_model_turn(delta: float) -> void:
 	var turn_strength := clampf(velocity_x / 520.0, -1.0, 1.0)
 	var target_y := deg_to_rad(turn_strength * 80.0)
 	model_root.rotation.y = lerp_angle(model_root.rotation.y, target_y, minf(1.0, delta * 8.0))
+
+func _update_blink(delta: float) -> void:
+	if closed_eyes_model == null or open_eyes_model == null:
+		return
+
+	blink_time = fposmod(blink_time + delta, BLINK_INTERVAL)
+	var is_blinking := blink_time < BLINK_DURATION
+	open_eyes_model.visible = not is_blinking
+	closed_eyes_model.visible = is_blinking
